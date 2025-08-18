@@ -1,11 +1,16 @@
 {
   "name": "cosmetics-pos-system",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Desktop-installable cosmetics shop POS system with offline capability",
+  "author": "Boshitha Gunarathna",
   "main": "public/electron.cjs",
   "homepage": "./",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BoshithaMGunarathna/OMEGA.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -15,10 +20,12 @@
     "electron-dev": "cross-env NODE_ENV=development electron .",
     "build-electron": "npm run build && electron-builder",
     "dist": "npm run build && electron-builder --publish=never",
+    "publish": "npm run build && electron-builder --publish=always",
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
     "date-fns": "^3.3.1",
+    "electron-updater": "^6.6.2",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -67,24 +74,38 @@
       {
         "from": "dist",
         "to": "dist",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "BoshithaMGunarathna",
+        "repo": "OMEGA",
+        "private": false
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
-      "icon": "public/icon.ico"
+      "icon": "public/icon.ico",
+      "publisherName": "Logicode Solutions"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "allowElevation": true
     }
   }
 }
