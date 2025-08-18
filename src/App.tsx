@@ -12,6 +12,7 @@ import Restock from './pages/Restock';
 import Orders from './pages/Orders';
 import Employees from './pages/Employees';
 import Analytics from './pages/Analytics';
+import UpdateNotification from './pages/UpdateNotification';
 
 const AppRoutes: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -59,6 +60,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
+        <UpdateNotification />
         <AppRoutes />
       </Router>
     </AuthProvider>
