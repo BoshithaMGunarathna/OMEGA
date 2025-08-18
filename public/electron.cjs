@@ -1,8 +1,111 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow;
+
+// Configure auto-updater
+autoUpdater.checkForUpdatesAndNotify();
+autoUpdater.autoDownload = false; // Don't auto-download, ask user first
+autoUpdater.autoInstallOnAppQuit = true;
+
+// Auto-updater event handlers
+autoUpdater.on('checking-for-update', () => {
+  console.log('Checking for update...');
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'checking',
+      message: 'Checking for updates...' 
+    });
+  }
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'available',
+      message: `Update available: v${info.version}`,
+      version: info.version,
+      releaseNotes: info.releaseNotes
+    });
+  }
+  
+  // Show dialog asking user if they want to download
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Available',
+    message: `A new version (v${info.version}) is available. Do you want to download it now?`,
+    detail: 'The update will be downloaded in the background. You can continue using the app.',
+    buttons: ['Download Now', 'Later'],
+    defaultId: 0
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate();
+    }
+  });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('Update not available:', info);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'not-available',
+      message: 'You are running the latest version' 
+    });
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.log('Auto-updater error:', err);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'error',
+      message: 'Error checking for updates',
+      error: err.message 
+    });
+  }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = "Download speed: " + progressObj.bytesPerSecond;
+  log_message = log_message + ' - Downloaded ' + progressObj.percent + '%';
+  log_message = log_message + ' (' + progressObj.transferred + "/" + progressObj.total + ')';
+  console.log(log_message);
+  
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'downloading',
+      message: `Downloading update... ${Math.round(progressObj.percent)}%`,
+      progress: progressObj.percent
+    });
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', { 
+      type: 'downloaded',
+      message: 'Update downloaded. Restart to apply.',
+      version: info.version
+    });
+  }
+
+  // Show dialog asking user to restart
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'Update Ready',
+    message: 'Update has been downloaded. Restart the application to apply the update.',
+    buttons: ['Restart Now', 'Later'],
+    defaultId: 0
+  }).then((result) => {
+    if (result.response === 0) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+});
 
 function createWindow() {
   // Create the browser window
@@ -31,13 +134,20 @@ function createWindow() {
     
     // Optional: Open DevTools in production for debugging
     // Remove this line for final release
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   }
 
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
     console.log('Electron window loaded successfully');
+    
+    // Check for updates after window is shown (only in production)
+    if (!isDev) {
+      setTimeout(() => {
+        autoUpdater.checkForUpdatesAndNotify();
+      }, 3000); // Wait 3 seconds before checking
+    }
   });
 
   // Handle window closed
@@ -150,6 +260,29 @@ ipcMain.handle('get-app-info', async () => {
     resourcesPath: process.resourcesPath,
     cwd: process.cwd(),
     dirname: __dirname,
-    isDev: isDev
+    isDev: isDev,
+    version: app.getVersion()
   };
+});
+
+// Auto-updater IPC handlers
+ipcMain.handle('check-for-updates', async () => {
+  if (!isDev) {
+    return autoUpdater.checkForUpdates();
+  }
+  return { message: 'Updates disabled in development mode' };
+});
+
+ipcMain.handle('download-update', async () => {
+  if (!isDev) {
+    return autoUpdater.downloadUpdate();
+  }
+  return { message: 'Updates disabled in development mode' };
+});
+
+ipcMain.handle('restart-and-install', async () => {
+  if (!isDev) {
+    autoUpdater.quitAndInstall();
+  }
+  return { message: 'Updates disabled in development mode' };
 });
