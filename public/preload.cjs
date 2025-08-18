@@ -13,6 +13,21 @@ try {
     // Debug function
     getAppInfo: () => ipcRenderer.invoke('get-app-info'),
     
+    // Auto-updater functions
+    checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+    downloadUpdate: () => ipcRenderer.invoke('download-update'),
+    restartAndInstall: () => ipcRenderer.invoke('restart-and-install'),
+    
+    // Listen for update status changes
+    onUpdateStatus: (callback) => {
+      ipcRenderer.on('update-status', (event, status) => callback(status));
+    },
+    
+    // Remove update status listener
+    removeUpdateStatusListener: () => {
+      ipcRenderer.removeAllListeners('update-status');
+    },
+    
     // Platform detection
     platform: process.platform,
     
