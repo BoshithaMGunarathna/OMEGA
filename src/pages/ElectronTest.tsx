@@ -1,12 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
-// Extend the Window interface to include electronAPI and electronTest
+// Define the UpdateStatus type for the merged interface
+type UpdateStatus = {
+    type: 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
+    message: string;
+    version?: string;
+    progress?: number;
+    error?: string;
+};
+
+// Merged Window interface declaration that includes ALL electronAPI methods
 declare global {
   interface Window {
     electronAPI?: {
+      // Hardware/POS methods (original methods from this file)
       scanBarcode: () => Promise<string>;
       printReceipt: (data: { items: string[]; total: string }) => Promise<void>;
       openCashDrawer: () => Promise<void>;
+      
+      // Update-related methods (from UpdateNotification component)
+      onUpdateStatus: (callback: (status: UpdateStatus) => void) => void;
+      removeUpdateStatusListener: () => void;
+      checkForUpdates: () => Promise<void>;
+      downloadUpdate: () => Promise<void>;
+      restartAndInstall: () => Promise<void>;
     };
     electronTest?: {
       ping: () => string;
