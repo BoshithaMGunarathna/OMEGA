@@ -10,10 +10,18 @@ on:
         description: 'Version to release (e.g., v1.0.1)'
         required: true
 
-jobs:
-  build:
-    runs-on: windows-latest
+# Grant necessary permissions for the entire workflow
+permissions:
+  contents: write
+  actions: read
 
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      actions: read
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -27,38 +35,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build React app
-      run: npm run build
-
-    - name: Build Electron app
-      run: npm run build-electron
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: electron-builds
-        path: electron-dist/
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: electron-builds
-        path: electron-dist/
-
     - name: Get version from tag
       id: version
+      shell: bash
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
@@ -66,16 +45,17 @@ jobs:
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
         fi
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.version.outputs.VERSION }}
-        name: Release ${{ steps.version.outputs.VERSION }}
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-        files: |
-          electron-dist/*.exe
-          electron-dist/*.yml
+    - name: Build and Release
+      run: npm run build-electron
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Use a more permissive token or create a PAT
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Alternative: Use a Personal Access Token
+        # GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+    - name: Upload artifacts (backup)
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: electron-builds-backup
+        path: electron-dist/
