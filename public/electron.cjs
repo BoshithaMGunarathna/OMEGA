@@ -23,11 +23,9 @@ function createWindow() {
   // Load the app
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
-    // Open DevTools in development
-    mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();    // Open DevTools in development
   } else {
-    // In production, load the built React app
-    const indexPath = path.join(__dirname, '../dist/index.html');
+    const indexPath = path.join(__dirname, '../dist/index.html');// In production, load the built React app
     console.log('Loading production build from:', indexPath);
     mainWindow.loadFile(indexPath);
     
